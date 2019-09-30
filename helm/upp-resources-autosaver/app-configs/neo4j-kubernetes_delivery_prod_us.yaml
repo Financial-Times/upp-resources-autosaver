@@ -1,0 +1,36 @@
+# Values used for the deployed application.
+service:
+  name: neo4j-kubernetes
+  cluster: upp-prod-neo4j-us
+
+dns:
+  tags: "systemCode=upp,teamDL=universal.publishing.platform@ft.com,environment=p,ipCode=P196"
+
+pv:
+  neo4j:
+    volume:
+        - region: us-east-1
+          zone: us-east-1a
+          name: neo4j-0-vol
+          volumeID: aws://us-east-1a/vol-0e704a8c752372a13
+        - region: us-east-1
+          zone: us-east-1b
+          name: neo4j-1-vol
+          volumeID: aws://us-east-1b/vol-0f685f5849c2a7fc5
+        - region: us-east-1
+          zone: us-east-1c
+          name: neo4j-2-vol
+          volumeID: aws://us-east-1c/vol-0b51af5eae38d744b
+    storage:
+      storageGi: 150Gi
+      fsType: ext4
+  backup:
+    volume:
+      region: us-east-1
+      zone: us-east-1a
+      name: neo4j-backup-vol
+      volumeID: aws://us-east-1a/vol-0041f4da566d2a44d
+      simpleVolumeID: vol-0041f4da566d2a44d
+    storage:
+      storageGi: 150Gi
+      fsType: ext4

@@ -1,0 +1,47 @@
+# Default values for Neo4j.
+# This is a YAML-formatted file.
+# Declare name/value pairs to be passed into your templates.
+# name: value
+
+name: "neo4j"
+nameOverride: "neo4j"
+
+# This value is only here because the Jenkins pipeline needs it.
+repository: coco/neo4j-kubernetes
+
+# Specs for the Neo4j docker image
+images:
+  main: "neo4j"
+  sidecar: "coco/neo4j-kubernetes"
+imageTags:
+  main: "3.4.10-enterprise"
+  sidecar: "implementation"
+imagePullPolicy: "IfNotPresent"
+
+memory:
+  heapSize: "16G"
+  pageCache: "30G"
+
+txRetention: "2 days"
+workerCount: "64"
+
+# Cores
+core:
+  numberOfServers: 3
+  persistentVolume:
+    mountPath: /data
+    size: 150Gi
+    storageClass: "neo4j"
+    subPath: ""
+
+# Read Replicas
+readReplica:
+  numberOfServers: 0
+
+resources: {}
+# limits:
+#   cpu: 100m
+#   memory: 512Mi
+# requests:
+#   cpu: 100m
+#   memory: 512Mi

@@ -1,0 +1,65 @@
+# Values used for the deployed application.
+service:
+  name: neo4j-kubernetes
+  cluster: upp-staging-neo4j-eu
+
+readReplica:
+  dnsSubdomain: upp-staging-neo-replica-eu
+  numberOfServers: 1
+  authEnabled: "true"
+  pv:
+    region: eu-west-1
+    zone: eu-west-1a
+    name: neo4j-read-replica-pv
+    volumeID: aws://eu-west-1a/vol-0f5f0c6bcefabbc81
+    simpleVolumeID: vol-0f5f0c6bcefabbc81
+  elb:
+    certArn: "arn:aws:acm:eu-west-1:469211898354:certificate/4e431fdf-0a66-436a-a998-37dd61307447"
+    allowFrom:
+    # Only allow access from FT VPNs
+    - 82.136.1.214/32
+    - 213.216.148.1/32
+    - 203.90.242.222/32
+    - 210.1.90.210/32
+    - 194.117.242.0/23
+    - 62.25.64.1/32
+    - 62.25.72.212/32
+    - 64.210.200.1/32
+    - 52.30.14.145/32
+    - 52.215.56.240/32
+    - 34.240.232.64/32
+    - 54.194.189.228/32
+  elbRegistrator:
+    image: "coco/coco-elb-dns-registrator:5.0.1"
+
+dns:
+  tags: "systemCode=upp,teamDL=universal.publishing.platform@ft.com,environment=t,ipCode=P196"
+
+pv:
+  neo4j:
+    volume:
+        - region: eu-west-1
+          zone: eu-west-1a
+          name: neo4j-0-vol
+          volumeID: aws://eu-west-1a/vol-0e0dd2a411f36cbcc
+        - region: eu-west-1
+          zone: eu-west-1b
+          name: neo4j-1-vol
+          volumeID: aws://eu-west-1b/vol-0b5312bbbae2ad7c6
+        - region: eu-west-1
+          zone: eu-west-1c
+          name: neo4j-2-vol
+          volumeID: aws://eu-west-1c/vol-080eba798e91975e2
+    storage:
+      storageGi: 150Gi
+      fsType: ext4
+  backup:
+    volume:
+      region: eu-west-1
+      zone: eu-west-1a
+      name: neo4j-backup-vol
+      volumeID: aws://eu-west-1a/vol-08ce381e1da7140b8
+      simpleVolumeID: vol-08ce381e1da7140b8
+    storage:
+      storageGi: 150Gi
+      fsType: ext4
