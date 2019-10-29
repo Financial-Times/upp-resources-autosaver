@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: upp-autosave
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: upp-autosave-cluster-role
+rules:
+  -
+    apiGroups:
+      - "*"
+    resources:
+      - "*"
+    verbs: ["*"]
+  - nonResourceURLs: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: upp-autosave-cluster-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: upp-autosave-cluster-role
+subjects:
+- kind: ServiceAccount
+  name: upp-autosave
+  namespace: default

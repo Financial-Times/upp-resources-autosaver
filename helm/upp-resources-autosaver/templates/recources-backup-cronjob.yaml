@@ -103,7 +103,7 @@ spec:
               DUMP_DIR_COMPLETE=/kube-resources-autosave/complete ;
               while true; do
                 for FILE in ${DUMP_DIR_COMPLETE}/* ; do
-                  aws s3 mv ${FILE} s3://upp-resources-autosaver-upp-poc-bboykov-pac-eu/clusters/upp-poc-pac-eu/backup/$(basename ${FILE}) --recursive && rm -r -f ${FILE} && exit 0 ;
+                  aws s3 mv ${FILE} s3://upp-resources-autosaver-upp-poc-bboykov-pac-eu/clusters/${ENV}/$(basename ${FILE}) --recursive && rm -r -f ${FILE} && exit 0 ;
                 done ;
                 sleep 1m ;
               done
