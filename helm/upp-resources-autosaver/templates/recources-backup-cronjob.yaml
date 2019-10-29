@@ -31,7 +31,7 @@ spec:
                 TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
                 DUMP_DIR=/kube-resources-autosave/tmp/${TIMESTAMP} ;
                 mkdir -p ${DUMP_DIR} ;
-                RESOURCES_OUT_NAMESPACE="namespaces persistentvolumes nodes storageclasses clusterrolebindings clusterroles";
+                RESOURCES_OUT_NAMESPACE="namespaces persistentvolumes nodes storageclasses clusterrolebindings clusterroles cronjobs";
                 for r in ${RESOURCES_OUT_NAMESPACE};do
                   echo " Searching for resources: ${r}" ;
                   /kubectl get --export -o=json ${r} | \
