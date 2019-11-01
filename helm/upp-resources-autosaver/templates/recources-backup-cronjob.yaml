@@ -2,24 +2,31 @@
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: upp-resources-autosaver
+  name: {{ template "upp-resources-autosaver.fullname" . }}
+  namespace: {{ .Values.namespace }}
   labels:
-    app: upp-resources-autosaver
+    app: {{ template "upp-resources-autosaver.name" . }}
+    chart: {{ template "upp-resources-autosaver.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
 spec:
   schedule: "1 */2 * * *"
   jobTemplate:
     spec:
       template:
         metadata:
+{{- with .Values.annotations }}
           annotations:
-            iam.amazonaws.com/role: K8sUppResourcesAutosaver
+{{ toYaml . | indent 12 }}
+{{- end }}
           creationTimestamp: 
           labels:
-            k8s-app: kupp-resources-autosave
+            app: {{ template "upp-resources-autosaver.name" . }}
+            release: {{ .Release.Name }}
           name: upp-resources-autosave
-          namespace: kube-system
+          namespace: {{ .Values.namespace }}
         spec:
-          serviceAccountName: upp-autosave
+          serviceAccountName: {{ .Values.rbac.AccountName }}
           containers:
           - args:
             - |
@@ -76,7 +83,7 @@ spec:
             command:
             - "/bin/sh"
             - "-c"
-            image: k8s.gcr.io/hyperkube-amd64:v1.13.10
+            image: "{{ .Values.dumperImage.repository }}:{{ .Values.dumperImage.tag }}"
             imagePullPolicy: IfNotPresent
             livenessProbe:
               exec:
@@ -90,7 +97,7 @@ spec:
               periodSeconds: 10
               successThreshold: 1
               timeoutSeconds: 1
-            name: upp-resources-autosave-dumper
+            name: "{{ .Chart.Name }}-dumper"
             resources: {}
             terminationMessagePath: "/dev/termination-log"
             terminationMessagePolicy: File
@@ -103,14 +110,14 @@ spec:
               DUMP_DIR_COMPLETE=/kube-resources-autosave/complete ;
               while true; do
                 for FILE in ${DUMP_DIR_COMPLETE}/* ; do
-                  aws s3 mv ${FILE} s3://upp-resources-autosaver-upp-poc-bboykov-pac-eu/clusters/${ENV}/$(basename ${FILE}) --recursive && rm -r -f ${FILE} && exit 0 ;
+                  aws s3 mv ${FILE} s3://{{ .Values.autosaveS3Path }}/$(basename ${FILE}) --recursive && rm -r -f ${FILE} && exit 0 ;
                 done ;
                 sleep 1m ;
               done
             command:
             - "/bin/sh"
             - "-c"
-            image: quay.io/coreos/awscli:master
+            image: "{{ .Values.pusherImage.repository }}:{{ .Values.pusherImage.tag }}"
             env:
               - name: ENV
                 valueFrom:
@@ -130,7 +137,7 @@ spec:
               periodSeconds: 10
               successThreshold: 1
               timeoutSeconds: 1
-            name: upp-resources-autosave-pusher
+            name: "{{ .Chart.Name }}-pusher"
             resources: {}
             terminationMessagePath: "/dev/termination-log"
             terminationMessagePolicy: File
