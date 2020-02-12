@@ -1,0 +1,156 @@
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ template "upp-resources-autosaver.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ template "upp-resources-autosaver.name" . }}
+    chart: {{ template "upp-resources-autosaver.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  schedule: "1 */2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+{{- with .Values.annotations }}
+          annotations:
+{{ toYaml . | indent 12 }}
+{{- end }}
+          creationTimestamp: 
+          labels:
+            app: {{ template "upp-resources-autosaver.name" . }}
+            release: {{ .Release.Name }}
+          name: upp-resources-autosave
+          namespace: {{ .Values.namespace }}
+        spec:
+          serviceAccountName: {{ .Values.rbac.AccountName }}
+          containers:
+          - args:
+            - |
+              set -x ;
+              DUMP_DIR_COMPLETE=/kube-resources-autosave/complete ;
+              aws configure set s3.signature_version s3v4 ;
+              mkdir -p ${DUMP_DIR_COMPLETE} ;
+              while true; do
+                TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
+                DUMP_DIR=/kube-resources-autosave/tmp/${TIMESTAMP} ;
+                mkdir -p ${DUMP_DIR} ;
+                RESOURCES_OUT_NAMESPACE="namespaces persistentvolumes nodes storageclasses clusterrolebindings clusterroles cronjobs";
+                for r in ${RESOURCES_OUT_NAMESPACE};do
+                  echo " Searching for resources: ${r}" ;
+                  /kubectl get --export -o=json ${r} | \
+                  jq '.items |= ([ .[] |
+                      del(.status,
+                      .metadata.uid,
+                      .metadata.selfLink,
+                      .metadata.resourceVersion,
+                      .metadata.creationTimestamp,
+                      .metadata.generation,
+                      .spec.claimRef
+                    )])' > ${DUMP_DIR}/${r}.json ;
+                done ;
+                RESOURCES_IN_NAMESPACE="componentstatuses configmaps daemonsets deployments endpoints events horizontalpodautoscalers
+                ingresses jobs limitranges networkpolicies  persistentvolumeclaims pods podsecuritypolicies podtemplates replicasets
+                replicationcontrollers resourcequotas secrets serviceaccounts services statefulsets servicemonitors customresourcedefinitions
+                poddisruptionbudgets roles rolebindings";
+                for ns in $(jq -r '.items[].metadata.name' < ${DUMP_DIR}/namespaces.json);do
+                  echo "Searching in namespace: ${ns}" ;
+                  mkdir -p ${DUMP_DIR}/${ns} ;
+                  for r in ${RESOURCES_IN_NAMESPACE};do
+                    echo " Searching for resources: ${r}" ;
+                    /kubectl --namespace=${ns} get --export -o=json ${r} | \
+                    jq '.items |= ([ .[] |
+                      select(.type!="kubernetes.io/service-account-token") |
+                      del(
+                        .spec.clusterIP,
+                        .metadata.uid,
+                        .metadata.selfLink,
+                        .metadata.resourceVersion,
+                        .metadata.creationTimestamp,
+                        .metadata.generation,
+                        .metadata.annotations."pv.kubernetes.io/bind-completed",
+                        .status
+                      )])' > ${DUMP_DIR}/${ns}/${r}.json && touch /probe-token ;
+                  done ;
+                done ;
+              mv ${DUMP_DIR} ${DUMP_DIR_COMPLETE}/${TIMESTAMP} ;
+              rm -r -f ${DUMP_DIR} ;
+              exit 0
+              done
+            command:
+            - "/bin/sh"
+            - "-c"
+            image: "{{ .Values.dumperImage.repository }}:{{ .Values.dumperImage.tag }}"
+            imagePullPolicy: IfNotPresent
+            livenessProbe:
+              exec:
+                command:
+                - "/bin/sh"
+                - "-c"
+                - AGE=$(( $(date +%s) - $(stat -c%Y /probe-token) < 25*60*60 ));  [ $AGE
+                  -gt 0 ]
+              failureThreshold: 3
+              initialDelaySeconds: 240
+              periodSeconds: 10
+              successThreshold: 1
+              timeoutSeconds: 1
+            name: "{{ .Chart.Name }}-dumper"
+            resources: {}
+            terminationMessagePath: "/dev/termination-log"
+            terminationMessagePolicy: File
+            volumeMounts:
+            - mountPath: "/kube-resources-autosave"
+              name: dump-dir
+          - args:
+            - |
+              set -x ;
+              DUMP_DIR_COMPLETE=/kube-resources-autosave/complete ;
+              while true; do
+                for FILE in ${DUMP_DIR_COMPLETE}/* ; do
+                  aws s3 mv ${FILE} s3://{{ .Values.autosaveS3Path }}/$(basename ${FILE}) --recursive && rm -r -f ${FILE} && exit 0 ;
+                done ;
+                sleep 1m ;
+              done
+            command:
+            - "/bin/sh"
+            - "-c"
+            image: "{{ .Values.pusherImage.repository }}:{{ .Values.pusherImage.tag }}"
+            env:
+              - name: ENV
+                valueFrom:
+                  configMapKeyRef:
+                    name: global-config
+                    key: environment
+            imagePullPolicy: IfNotPresent
+            livenessProbe:
+              exec:
+                command:
+                - "/bin/sh"
+                - "-c"
+                - AGE=$(( $(date +%s) - $(stat -c%Y /probe-token) < 25*60*60 ));  [ $AGE
+                  -gt 0 ]
+              failureThreshold: 3
+              initialDelaySeconds: 240
+              periodSeconds: 10
+              successThreshold: 1
+              timeoutSeconds: 1
+            name: "{{ .Chart.Name }}-pusher"
+            resources: {}
+            terminationMessagePath: "/dev/termination-log"
+            terminationMessagePolicy: File
+            volumeMounts:
+            - mountPath: "/kube-resources-autosave"
+              name: dump-dir
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+          volumes:
+          - emptyDir: {}
+            name: dump-dir
+          restartPolicy: Never
+  concurrencyPolicy: Forbid

@@ -1,0 +1,17 @@
+replicaCount: 1
+namespace: default
+
+dumperImage:
+  repository: k8s.gcr.io/hyperkube-amd64
+  tag: v1.14.8
+
+pusherImage:
+  repository: quay.io/coreos/awscli
+  tag: master
+
+annotations:
+  iam.amazonaws.com/role: "K8sUppResourcesAutosaver"
+
+rbac:
+ AccountName: upp-autosave
+
