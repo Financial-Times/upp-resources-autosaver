@@ -57,18 +57,7 @@ spec:
                 replicationcontrollers resourcequotas secrets serviceaccounts services statefulsets servicemonitors customresourcedefinitions
                 poddisruptionbudgets roles rolebindings SealedSecret";
                 mkdir -p ${DUMP_DIR}/kube-system/sealedsecret ;
-                /kubectl get secret -n kube-system | grep sealed-secrets-key | awk '{ print $1}' | xargs kubectl --namespace=kube-system get --export -o=json secret | \
-                jq '.items |= ([ .[] |
-                  select(.type!="kubernetes.io/service-account-token") |
-                  del(
-                    .spec.clusterIP,
-                    .metadata.uid,
-                    .metadata.selfLink,
-                    .metadata.resourceVersion,
-                    .metadata.creationTimestamp,
-                    .metadata.generation,
-                    .status
-                  )])' > ${DUMP_DIR}/kube-system/sealedsecret/sealedsecret-token.json ;
+                /kubectl get secret -n kube-system | grep sealed-secrets-key | awk '{ print $1}' | xargs kubectl --namespace=kube-system get --export -o=json secret > ${DUMP_DIR}/kube-system/sealedsecret/sealedsecret-token.json ;
                 for ns in $(jq -r '.items[].metadata.name' < ${DUMP_DIR}/namespaces.json);do
                   echo "Searching in namespace: ${ns}" ;
                   mkdir -p ${DUMP_DIR}/${ns} ;
