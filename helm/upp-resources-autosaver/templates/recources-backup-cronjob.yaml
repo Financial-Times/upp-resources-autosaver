@@ -55,7 +55,9 @@ spec:
                 RESOURCES_IN_NAMESPACE="componentstatuses configmaps daemonsets deployments endpoints events horizontalpodautoscalers
                 ingresses jobs limitranges networkpolicies  persistentvolumeclaims pods podsecuritypolicies podtemplates replicasets
                 replicationcontrollers resourcequotas secrets serviceaccounts services statefulsets servicemonitors customresourcedefinitions
-                poddisruptionbudgets roles rolebindings";
+                poddisruptionbudgets roles rolebindings SealedSecret";
+                mkdir -p ${DUMP_DIR}/kube-system/sealedsecret ;
+                /kubectl get secret -n kube-system | grep sealed-secrets-key | awk '{ print $1}' | xargs kubectl --namespace=kube-system get --export -o=json secret > ${DUMP_DIR}/kube-system/sealedsecret/sealedsecret-token.json ;
                 for ns in $(jq -r '.items[].metadata.name' < ${DUMP_DIR}/namespaces.json);do
                   echo "Searching in namespace: ${ns}" ;
                   mkdir -p ${DUMP_DIR}/${ns} ;
