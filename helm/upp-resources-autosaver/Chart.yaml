@@ -2,4 +2,4 @@ apiVersion: v2
 appVersion: "1.0.0"
 description: A Helm chart for deploying upp-resources-autosaver on Kubernetes
 name: upp-resources-autosaver
-version: 1.0.1
+version: 0.0.0
