@@ -11,6 +11,8 @@ metadata:
     heritage: {{ .Release.Service }}
 spec:
   schedule: "1 */2 * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
       template:
@@ -19,7 +21,7 @@ spec:
           annotations:
 {{ toYaml . | indent 12 }}
 {{- end }}
-          creationTimestamp: 
+          creationTimestamp:
           labels:
             app: {{ template "upp-resources-autosaver.name" . }}
             release: {{ .Release.Name }}
