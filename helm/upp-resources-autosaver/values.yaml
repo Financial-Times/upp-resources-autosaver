@@ -9,9 +9,6 @@ pusherImage:
   repository: quay.io/coreos/awscli
   tag: master
 
-annotations:
-  iam.amazonaws.com/role: "K8sUppResourcesAutosaver"
-
 rbac:
- AccountName: upp-autosave
+ AccountName: eksctl-upp-autosave-serviceaccount
 

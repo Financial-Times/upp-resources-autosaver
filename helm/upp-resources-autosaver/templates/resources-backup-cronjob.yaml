@@ -17,10 +17,6 @@ spec:
     spec:
       template:
         metadata:
-{{- with .Values.annotations }}
-          annotations:
-{{ toYaml . | indent 12 }}
-{{- end }}
           creationTimestamp:
           labels:
             app: {{ template "upp-resources-autosaver.name" . }}
