@@ -17,10 +17,6 @@ spec:
     spec:
       template:
         metadata:
-{{- with .Values.annotations }}
-          annotations:
-{{ toYaml . | indent 12 }}
-{{- end }}
           creationTimestamp:
           labels:
             app: {{ template "upp-resources-autosaver.name" . }}
@@ -43,7 +39,7 @@ spec:
                 RESOURCES_OUT_NAMESPACE="namespaces persistentvolumes nodes storageclasses clusterrolebindings clusterroles cronjobs";
                 for r in ${RESOURCES_OUT_NAMESPACE};do
                   echo " Searching for resources: ${r}" ;
-                  /kubectl get --export -o=json ${r} | \
+                  /kubectl get -o=json ${r} | \
                   jq '.items |= ([ .[] |
                       del(.status,
                       .metadata.uid,
@@ -59,13 +55,13 @@ spec:
                 replicationcontrollers resourcequotas secrets serviceaccounts services statefulsets servicemonitors customresourcedefinitions
                 poddisruptionbudgets roles rolebindings SealedSecret";
                 mkdir -p ${DUMP_DIR}/kube-system/sealedsecret ;
-                /kubectl get secret -n kube-system | grep sealed-secrets-key | awk '{ print $1}' | xargs kubectl --namespace=kube-system get --export -o=json secret > ${DUMP_DIR}/kube-system/sealedsecret/sealedsecret-token.json ;
+                /kubectl get secret -n kube-system | grep sealed-secrets-key | awk '{ print $1}' | xargs kubectl --namespace=kube-system get -o=json secret > ${DUMP_DIR}/kube-system/sealedsecret/sealedsecret-token.json ;
                 for ns in $(jq -r '.items[].metadata.name' < ${DUMP_DIR}/namespaces.json);do
                   echo "Searching in namespace: ${ns}" ;
                   mkdir -p ${DUMP_DIR}/${ns} ;
                   for r in ${RESOURCES_IN_NAMESPACE};do
                     echo " Searching for resources: ${r}" ;
-                    /kubectl --namespace=${ns} get --export -o=json ${r} | \
+                    /kubectl --namespace=${ns} get -o=json ${r} | \
                     jq '.items |= ([ .[] |
                       select(.type!="kubernetes.io/service-account-token") |
                       del(
@@ -111,6 +107,11 @@ spec:
           - args:
             - |
               set -x ;
+              aws sts assume-role-with-web-identity --role-arn $AWS_ROLE_ARN  --role-session-name $(date +%s) --web-identity-token file://$AWS_WEB_IDENTITY_TOKEN_FILE --duration-seconds 1000 > /tmp/irp-cred.txt
+              export AWS_ACCESS_KEY_ID="$(cat /tmp/irp-cred.txt | jq -r ".Credentials.AccessKeyId")"
+              export AWS_SECRET_ACCESS_KEY="$(cat /tmp/irp-cred.txt | jq -r ".Credentials.SecretAccessKey")"
+              export AWS_SESSION_TOKEN="$(cat /tmp/irp-cred.txt | jq -r ".Credentials.SessionToken")"
+              rm /tmp/irp-cred.txt
               DUMP_DIR_COMPLETE=/kube-resources-autosave/complete ;
               while true; do
                 for FILE in ${DUMP_DIR_COMPLETE}/* ; do
