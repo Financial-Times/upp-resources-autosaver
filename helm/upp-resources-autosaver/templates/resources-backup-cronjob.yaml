@@ -39,7 +39,7 @@ spec:
                 RESOURCES_OUT_NAMESPACE="namespaces persistentvolumes nodes storageclasses clusterrolebindings clusterroles cronjobs";
                 for r in ${RESOURCES_OUT_NAMESPACE};do
                   echo " Searching for resources: ${r}" ;
-                  /kubectl get -o=json ${r} | \
+                  kubectl get -o=json ${r} | \
                   jq '.items |= ([ .[] |
                       del(.status,
                       .metadata.uid,
@@ -55,13 +55,13 @@ spec:
                 replicationcontrollers resourcequotas secrets serviceaccounts services statefulsets servicemonitors customresourcedefinitions
                 poddisruptionbudgets roles rolebindings SealedSecret";
                 mkdir -p ${DUMP_DIR}/kube-system/sealedsecret ;
-                /kubectl get secret -n kube-system | grep sealed-secrets-key | awk '{ print $1}' | xargs kubectl --namespace=kube-system get -o=json secret > ${DUMP_DIR}/kube-system/sealedsecret/sealedsecret-token.json ;
+                kubectl get secret -n kube-system | grep sealed-secrets-key | awk '{ print $1}' | xargs kubectl --namespace=kube-system get -o=json secret > ${DUMP_DIR}/kube-system/sealedsecret/sealedsecret-token.json ;
                 for ns in $(jq -r '.items[].metadata.name' < ${DUMP_DIR}/namespaces.json);do
                   echo "Searching in namespace: ${ns}" ;
                   mkdir -p ${DUMP_DIR}/${ns} ;
                   for r in ${RESOURCES_IN_NAMESPACE};do
                     echo " Searching for resources: ${r}" ;
-                    /kubectl --namespace=${ns} get -o=json ${r} | \
+                    kubectl --namespace=${ns} get -o=json ${r} | \
                     jq '.items |= ([ .[] |
                       select(.type!="kubernetes.io/service-account-token") |
                       del(
