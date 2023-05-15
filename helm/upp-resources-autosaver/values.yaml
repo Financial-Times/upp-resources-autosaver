@@ -2,12 +2,12 @@ replicaCount: 1
 namespace: default
 
 dumperImage:
-  repository: k8s.gcr.io/hyperkube-amd64
-  tag: v1.14.8
+  repository: ftcore/ft-core-eks-provisioner
+  tag: v0.0.20
 
 pusherImage:
-  repository: quay.io/coreos/awscli
-  tag: master
+  repository: amazon/aws-cli
+  tag: latest
 
 rbac:
  AccountName: eksctl-upp-autosave-serviceaccount
